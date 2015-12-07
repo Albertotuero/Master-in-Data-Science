@@ -1,0 +1,131 @@
+# These are the exercises from the Master in Data Science class of 30th November
+
+# EXERCISE 1: What is the airline with the most flithts
+
+# Step1: In the first place we look with csvstat command the columns in we are 
+# interested
+
+csvstat -d '^' optd_airlines.csv
+
+# This file has 14 columns:
+#   PK
+#   ENV_ID
+#   VALIDITY_FROM
+#   VALIDITY_TO
+#   3CHAR_CODE
+#   2CHAR_CODE
+#   NUM_CODE
+#   NAME
+#   NAME2
+#   ALLIANCE_CODE
+#   ALLIANCE_STATUS
+#   TYPE
+#   WIKI_LINK
+#   FLT_FREQ
+
+# Step 2: We are interested in PK and FLT_FREQ columns, so we select them, 
+# sorting and keeping the first line and the second column
+
+csvcut -d '^' -c flt_freq,pk,2char_code optd_airlines.csv | sort -n -r | head -1 | cut -d ',' -f 2
+
+# The Result is: trn_accesrail
+
+# EXERCISE 2: What is the alliance with the most airlines
+csvcut -d '^' -c alliance_code optd_airlines.csv | sort | uniq -c | sort -r -n
+
+# The result is OneWorld
+
+# EXERCISE 3: What is the column number for "passengers"?
+
+zcat T100_SEGMENT_ALL_CARRIER_2015.zip | head -1
+
+# The result is PASSENGERS
+
+# EXERCISE 4: Print to screen, one field per line, the header and first line of the T100 file, side by side
+
+zcat T100_SEGMENT_ALL_CARRIER_2015.zip | head -1 | tr ',' '\n' > file1
+zcat T100_SEGMENT_ALL_CARRIER_2015.zip | head -2 | tail -1 | tr ',' '\n' > file2
+paste file1 file2
+rm file1 file2
+
+# EXERCISE 5: What airline flies the most segments?
+
+zcat T100_SEGMENT_ALL_CARRIER_2014.zip | csvcut -c PASSENGERS,AIRLINE_ID,UNIQUE_CARRIER_NAME | sort -n -r | head -10
+
+# The result is: Hawaiian Airlines Inc.
+
+
+# EXERCISE 6: For each of the top ten airlines in terms of unique segments, print the total amount of passengers transported in 2014 
+
+# Step1: Gets the top of the top ten airlnes in terms of unique segments
+
+zcat T100_SEGMENT_ALL_CARRIER_2014.zip | csvcut -c PASSENGERS,SEATS,AIRLINE_ID,UNIQUE_CARRIER_NAME | sort -n -r | head -700 | cut -d ',' -f 3,4 | sort | uniq -c | sort -n -r
+
+# The result is:
+#    301 19805,American Airlines Inc.
+#    127 19790,Delta Air Lines Inc.
+#     96 19690,Hawaiian Airlines Inc.
+#     81 20355,US Airways Inc.
+#     34 19393,Southwest Airlines Co.
+#     24 19687,Horizon Air
+#     17 20409,JetBlue Airways
+#     16 19540,British Airways Plc
+#      2 19977,United Air Lines Inc.
+#      1 19930,Alaska Airlines Inc.
+#      1 19779,Cathay Pacific Airways Ltd.
+
+# Step 2: Generates the following script:
+
+#!/bin/sh
+
+echo 0 > file0
+echo quit >> file0
+
+# Gets the entries for the airline
+zcat T100_SEGMENT_ALL_CARRIER_2014.zip | csvcut -c PASSENGERS,AIRLINE_ID,UNIQUE_CARRIER_NAME | grep ,$1, > file_airline
+
+echo The number of passengers for 
+
+# Gets the name of the airline
+less file_airline | cut -d ',' -f 3 | uniq
+echo is
+
+# Generates the input file for bc command
+less file_airline | cut -d ',' -f 1 | tr '\n' '+' > file
+less file file0 > file2
+bc file2
+rm file_airline file file0 file2
+
+# END OF THE SCRIPT
+
+# Step3: Invoque the script for each AIRLINE_ID
+
+19805 --> American Airlines Inc.       -->  88,360,953 passengers
+19790 --> Delta Air Lines Inc.         --> 128,674,479 passengers
+19690 --> Hawaiian Airlines Inc.       -->  10,077,726 passengers
+20355 --> US Airways Inc.              -->  58,327,469 passengers
+19393 --> Southwest Airlines Co.       --> 133,918,303 passengers
+19687 --> Horizon Air                  -->   7,562,645 passengers
+20409 --> JetBlue Airways              -->  32,196,347 passengers
+19540 --> British Airways Plc          -->   7,001,222 passengers
+19977 --> United Air Lines Inc.        -->  90,542,699 passengers
+19930 --> Alaska Airlines Inc.         -->  21,563,194 passengers
+19779 --> Cathay Pacific Airways Ltd.  -->   2,006,283 passengers
+
+
+# EXERCISE 7: Extract all 7x7 (Boeing) and all 3xx model number to stdout or a separated file
+
+less optd_aircraft.csv | cut -d '^' -f 3,2 | grep -e 7.7 > models
+less optd_aircraft.csv | cut -d '^' -f 3,2 | grep -e 3..$ > models
+
+# EXERCISE 8: How many airlines have de word (not prefix) "Air", "airlines" or the prefix "aero" in their name
+
+cut -d '^' -f 8 optd_airlines.csv | grep -E ".Air.|.*[Aa]irlines.|^[aA]ero." | wc -l
+
+# Result: 504
+
+# EXERCISE 9: Extract all airlines that were active until, or were founded in, before 1970
+
+# The airlines founded in before 1970
+cut -d '^' -f 3,8 optd_airlines.csv | grep -E "^19[0-6][0-9]" | sort -n
+
